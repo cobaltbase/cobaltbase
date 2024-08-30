@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
+	ct "github.com/cobaltbase/cobaltbase/customTypes"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -100,4 +101,12 @@ func Configure() {
 		log.Println("Connected to database")
 	}
 
+	err = DB.AutoMigrate(&ct.Schema{})
+	if err != nil {
+		fmt.Printf("failed to create table: %v", err)
+	}
+	err = DB.AutoMigrate(&ct.SchemaField{})
+	if err != nil {
+		fmt.Printf("failed to create table: %v", err)
+	}
 }
