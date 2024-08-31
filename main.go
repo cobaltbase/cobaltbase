@@ -10,7 +10,6 @@ import (
 )
 
 func main() {
-	//comment
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Mount("/api", routes.ApiRouter())
