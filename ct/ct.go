@@ -1,4 +1,4 @@
-package customTypes
+package ct
 
 import (
 	"fmt"

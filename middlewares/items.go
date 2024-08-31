@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/cobaltbase/cobaltbase/customTypes"
+	"github.com/cobaltbase/cobaltbase/ct"
 	"github.com/go-chi/render"
 )
 
@@ -14,7 +14,7 @@ func PreProcessingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if err := r.ParseMultipartForm(1024 * 1024); err != nil {
 			render.Status(r, 400)
-			render.JSON(w, r, customTypes.Json{"message": "Invalid Form Data"})
+			render.JSON(w, r, ct.Json{"message": "Invalid Form Data"})
 		}
 
 		var jsondata = make(map[string]interface{})
@@ -30,7 +30,7 @@ func PreProcessingMiddleware(next http.Handler) http.Handler {
 		jsonDataJson, err := json.Marshal(jsondata)
 		if err != nil {
 			render.Status(r, 400)
-			render.JSON(w, r, customTypes.Json{"error": "Invalid Json"})
+			render.JSON(w, r, ct.Json{"error": "Invalid Json"})
 		}
 
 		var person Person
@@ -39,11 +39,11 @@ func PreProcessingMiddleware(next http.Handler) http.Handler {
 		err = json.Unmarshal(jsonDataJson, &person)
 		if err != nil {
 			render.Status(r, 400)
-			render.JSON(w, r, customTypes.Json{"error": err.Error()})
+			render.JSON(w, r, ct.Json{"error": err.Error()})
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), customTypes.JsonDataKey, person)
+		ctx := context.WithValue(r.Context(), ct.JsonDataKey, person)
 		r = r.WithContext(ctx)
 
 		next.ServeHTTP(w, r)

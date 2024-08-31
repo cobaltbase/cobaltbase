@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/cobaltbase/cobaltbase/config"
-	"github.com/cobaltbase/cobaltbase/customTypes"
+	"github.com/cobaltbase/cobaltbase/ct"
 	"github.com/cobaltbase/cobaltbase/middlewares"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
@@ -34,7 +34,7 @@ func CreateItem() http.HandlerFunc {
 		// 	fmt.Println(err.Error())
 		// }
 
-		// v := reflect.ValueOf(&customTypes.SchemaField{}).Elem()
+		// v := reflect.ValueOf(&ct.SchemaField{}).Elem()
 		// t := v.Type()
 
 		// for i := 0; i < t.NumField(); i++ {
@@ -44,7 +44,7 @@ func CreateItem() http.HandlerFunc {
 		// 	}
 		// }
 
-		data, ok := r.Context().Value(customTypes.JsonDataKey).(middlewares.Person)
+		data, ok := r.Context().Value(ct.JsonDataKey).(middlewares.Person)
 
 		if !ok {
 			http.Error(w, "Middleware data not found", http.StatusInternalServerError)
