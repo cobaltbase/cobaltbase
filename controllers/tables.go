@@ -4,12 +4,12 @@ import (
 	"net/http"
 
 	"github.com/cobaltbase/cobaltbase/config"
-	"github.com/cobaltbase/cobaltbase/customTypes"
+	"github.com/cobaltbase/cobaltbase/ct"
 	"github.com/cobaltbase/cobaltbase/utils"
 	"github.com/go-chi/render"
 )
 
-type js = customTypes.Json
+type js = ct.Json
 
 func GetAllTables() http.HandlerFunc {
 	//var db = config.DB
@@ -25,7 +25,7 @@ func GetAllTables() http.HandlerFunc {
 
 func CreateTable() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var schema customTypes.Schema
+		var schema ct.Schema
 		if err := render.DecodeJSON(r.Body, &schema); err != nil {
 			render.Status(r, 400)
 			render.JSON(w, r, js{

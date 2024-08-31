@@ -3,13 +3,13 @@ package routes
 import (
 	"net/http"
 
-	"github.com/cobaltbase/cobaltbase/customTypes"
+	"github.com/cobaltbase/cobaltbase/ct"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 )
 
 func ApiRouter() *chi.Mux {
-	type js = customTypes.Json
+	type js = ct.Json
 	api := chi.NewRouter()
 
 	api.Get("/", func(w http.ResponseWriter, r *http.Request) {

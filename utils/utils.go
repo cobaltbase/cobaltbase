@@ -6,7 +6,7 @@ import (
 	"strings"
 	"unicode"
 
-	ct "github.com/cobaltbase/cobaltbase/customTypes"
+	"github.com/cobaltbase/cobaltbase/ct"
 	"github.com/lib/pq"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
