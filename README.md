@@ -50,7 +50,7 @@ CobaltBase includes an intuitive web console built with SvelteKit, allowing you 
 
 ### **Extensibility**
 
-While CobaltBase provides built-in features like CRUD operations, authentication, and real-time APIs, extensibility is intentionally kept limited. Developers can add custom logic using JavaScript for specific tasks like creating custom endpoints, but full extensibility is beyond the platform’s scope. Instead, CobaltBase focuses on delivering core functionalities with the ability to integrate custom code where needed, giving developers a balanced mix of flexibility and simplicity while still allowing room for expansion if desired.
+While CobaltBase offers a range of built-in features like CRUD operations, authentication, and real-time APIs, extensibility is intentionally limited. Developers can use CobaltBase as a library, adding their own custom logic through Go's Chi endpoints, middleware, and Gorm queries. This approach allows for flexibility in extending functionality without overcomplicating the platform, ensuring that developers can tailor CobaltBase to their needs while still benefiting from its robust core features.
 
 ## Status
 
