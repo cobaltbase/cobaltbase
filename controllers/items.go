@@ -6,7 +6,6 @@ import (
 
 	"github.com/cobaltbase/cobaltbase/config"
 	"github.com/cobaltbase/cobaltbase/ct"
-	"github.com/cobaltbase/cobaltbase/middlewares"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 )
@@ -30,6 +29,19 @@ func GetAllItems() http.HandlerFunc {
 
 func CreateItem() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		tableName := chi.URLParam(r, "table")
+		var schema ct.Schema
+
+		result := config.DB.Preload("Fields").First(&schema, &ct.Schema{
+			TableName: tableName,
+		})
+		if result.Error != nil {
+			render.Status(r, 400)
+			render.JSON(w, r, ct.Js{
+				"error": result.Error.Error(),
+			})
+			return
+		}
 		// if err := r.ParseMultipartForm(1024 * 1024); err != nil {
 		// 	fmt.Println(err.Error())
 		// }
@@ -44,12 +56,25 @@ func CreateItem() http.HandlerFunc {
 		// 	}
 		// }
 
-		data, ok := r.Context().Value(ct.JsonDataKey).(middlewares.Person)
+		data, ok := r.Context().Value(ct.JsonDataKey).(ct.Js)
 
 		if !ok {
 			http.Error(w, "Middleware data not found", http.StatusInternalServerError)
 			return
 		}
+
+		// data["id"], _ = gonanoid.New(10)
+		// data["created_at"] = time.Now()
+		// data["updated_at"] = time.Now()
+
+		// err := config.DB.Table(tableName).Create(&data).Error
+		// if err != nil {
+		// 	render.Status(r, 400)
+		// 	render.JSON(w, r, js{
+		// 		"error": err.Error(),
+		// 	})
+		// 	return
+		// }
 
 		render.JSON(w, r, js{
 			"message": "Create Item Endpoint",

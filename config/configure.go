@@ -7,12 +7,15 @@ import (
 	"os"
 	"path/filepath"
 
-	ct "github.com/cobaltbase/cobaltbase/customTypes"
+	"github.com/cobaltbase/cobaltbase/ct"
+	"github.com/go-playground/validator/v10"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
 var DB *gorm.DB
+
+var Validate = validator.New()
 
 const configFileName = "dbconfig.json"
 
@@ -101,7 +104,7 @@ func Configure() {
 		log.Println("Connected to database")
 	}
 
-	err = DB.AutoMigrate(&ct.Schema{})
+	err = DB.Table("schemas").AutoMigrate(&ct.Schema{})
 	if err != nil {
 		fmt.Printf("failed to create table: %v", err)
 	}

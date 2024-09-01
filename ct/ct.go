@@ -1,9 +1,6 @@
 package ct
 
 import (
-	"fmt"
-
-	"github.com/go-playground/validator/v10"
 	"github.com/lib/pq"
 	gonanoid "github.com/matoous/go-nanoid/v2"
 	"gorm.io/gorm"
@@ -13,7 +10,7 @@ type ContextKey string
 
 const JsonDataKey = ContextKey("jsondata")
 
-type Json = map[string]interface{}
+type Js = map[string]interface{}
 
 type BaseModel struct {
 	ID string `gorm:"primarykey"`
@@ -40,24 +37,4 @@ type Schema struct {
 func (base *BaseModel) BeforeCreate(tx *gorm.DB) (err error) {
 	base.ID, err = gonanoid.New(10) // Generate a 10-character NanoID
 	return
-}
-
-type ValidatorHook struct{}
-
-func validateStruct(data interface{}) error {
-	validate := validator.New()
-	// Perform validation
-	err := validate.Struct(data)
-	if err != nil {
-		return fmt.Errorf("validation failed: %v", err)
-	}
-	return nil
-}
-
-func (v ValidatorHook) BeforeCreate(tx *gorm.DB) (err error) {
-	return validateStruct(tx.Statement.Model)
-}
-
-func (v ValidatorHook) BeforeUpdate(tx *gorm.DB) (err error) {
-	return validateStruct(tx.Statement.Model)
 }

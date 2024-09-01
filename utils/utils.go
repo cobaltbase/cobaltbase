@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 	"unicode"
 
 	"github.com/cobaltbase/cobaltbase/ct"
@@ -12,17 +13,11 @@ import (
 	"gorm.io/gorm"
 )
 
-func CreateSchema(db *gorm.DB, schema ct.Schema) error {
-	// Create a new struct type dynamically
+func CreateStructFromSchema(schema ct.Schema) interface{} {
 	fields := []reflect.StructField{
 		{
 			Name:      "Model",
 			Type:      reflect.TypeOf(ct.BaseModel{}),
-			Anonymous: true,
-		},
-		{
-			Name:      "ValidatorHook",
-			Type:      reflect.TypeOf(ct.ValidatorHook{}),
 			Anonymous: true,
 		},
 	}
@@ -30,7 +25,7 @@ func CreateSchema(db *gorm.DB, schema ct.Schema) error {
 	// Add fields to the struct type
 	for _, field := range schema.Fields {
 		fields = append(fields, reflect.StructField{
-			Name: stringToUpperCamelCase(field.Name),
+			Name: StringToUpperCamelCase(field.Name),
 			Type: getReflectType(field.Type),
 			Tag:  generateTag(field),
 		})
@@ -39,7 +34,12 @@ func CreateSchema(db *gorm.DB, schema ct.Schema) error {
 	newType := reflect.StructOf(fields)
 
 	// Create a new instance of the struct
-	newStruct := reflect.New(newType).Elem().Interface()
+	return reflect.New(newType).Interface()
+}
+
+func CreateSchema(db *gorm.DB, schema ct.Schema) error {
+	// Create a new struct type dynamically
+	newStruct := CreateStructFromSchema(schema)
 
 	// Create the table
 	err := db.Table(schema.TableName).AutoMigrate(newStruct)
@@ -50,7 +50,7 @@ func CreateSchema(db *gorm.DB, schema ct.Schema) error {
 	return nil
 }
 
-func stringToUpperCamelCase(s string) string {
+func StringToUpperCamelCase(s string) string {
 	var result strings.Builder
 
 	words := strings.FieldsFunc(s, func(r rune) bool {
@@ -81,14 +81,14 @@ func getReflectType(fieldType string) reflect.Type {
 		return reflect.TypeOf(float64(0))
 	case "boolean":
 		return reflect.TypeOf(false)
-	case "jsonb":
+	case "json":
 		return reflect.TypeOf(datatypes.JSON{})
 	case "singleRealtion":
 		return reflect.TypeOf("")
 	case "multipleRealtion":
 		return reflect.TypeOf(pq.StringArray{})
 	case "datetime":
-		return reflect.TypeOf(datatypes.Date{})
+		return reflect.TypeOf(time.Time{})
 	case "singleFile":
 		return reflect.TypeOf("")
 	case "multipleFiles":
@@ -108,6 +108,8 @@ func generateTag(field ct.SchemaField) reflect.StructTag {
 
 	// Build the GORM tag based on field properties.
 	var gormTag string
+
+	gormTag = appendGormOption(gormTag, fmt.Sprintf("column:%s", field.Name))
 
 	// Check if the field type is "multipleRelation" to add the text[] tag.
 	if field.Type == "multipleRelation" {

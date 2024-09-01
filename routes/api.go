@@ -9,7 +9,7 @@ import (
 )
 
 func ApiRouter() *chi.Mux {
-	type js = ct.Json
+	type js = ct.Js
 	api := chi.NewRouter()
 
 	api.Get("/", func(w http.ResponseWriter, r *http.Request) {
