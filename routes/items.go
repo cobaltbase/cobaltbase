@@ -10,6 +10,10 @@ func ItemsRouter() *chi.Mux {
 	tr := chi.NewRouter()
 
 	tr.Get("/{table}", controllers.GetAllItems())
+
+	tr.Get("/{table}/single", controllers.GetItem())
 	tr.With(middlewares.PreProcessingMiddleware).Post("/{table}", controllers.CreateItem())
+	tr.With(middlewares.PreProcessingMiddleware).Post("/{table}", controllers.CreateItem())
+
 	return tr
 }
