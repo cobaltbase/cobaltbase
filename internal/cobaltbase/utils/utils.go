@@ -7,7 +7,7 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/cobaltbase/cobaltbase/ct"
+	"github.com/cobaltbase/cobaltbase/internal/cobaltbase/ct"
 	"github.com/lib/pq"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"

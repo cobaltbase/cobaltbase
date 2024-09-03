@@ -3,7 +3,7 @@ package routes
 import (
 	"net/http"
 
-	"github.com/cobaltbase/cobaltbase/ct"
+	"github.com/cobaltbase/cobaltbase/internal/cobaltbase/ct"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 )

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/cobaltbase/cobaltbase/ct"
+	"github.com/cobaltbase/cobaltbase/internal/cobaltbase/ct"
 )
 
 var OperatorIndex = map[string]bool{

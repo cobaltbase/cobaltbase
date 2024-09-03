@@ -7,7 +7,7 @@
 *.dll
 *.so
 *.dylib
-.air.toml
+cmd/.air.toml
 
 # Test binary, built with `go test -c`
 *.test

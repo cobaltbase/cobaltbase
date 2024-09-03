@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/cobaltbase/cobaltbase/ct"
+	"github.com/cobaltbase/cobaltbase/internal/cobaltbase/ct"
 	"github.com/go-playground/validator/v10"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"

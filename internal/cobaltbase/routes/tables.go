@@ -1,7 +1,7 @@
 package routes
 
 import (
-	"github.com/cobaltbase/cobaltbase/controllers"
+	"github.com/cobaltbase/cobaltbase/internal/cobaltbase/controllers"
 	"github.com/go-chi/chi/v5"
 )
 
