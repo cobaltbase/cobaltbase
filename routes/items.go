@@ -13,7 +13,8 @@ func ItemsRouter() *chi.Mux {
 
 	tr.Get("/{table}/single", controllers.GetItem())
 	tr.With(middlewares.PreProcessingMiddleware).Post("/{table}", controllers.CreateItem())
-	tr.With(middlewares.PreProcessingMiddleware).Post("/{table}", controllers.CreateItem())
+	tr.With(middlewares.PreProcessingMiddleware).Put("/{table}", controllers.UpdateItem())
+	tr.Delete("/{table}/{id}", controllers.DeleteItem())
 
 	return tr
 }
