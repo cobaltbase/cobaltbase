@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/cobaltbase/cobaltbase/internal/cobaltbase/ct"
+	"github.com/cobaltbase/cobaltbase/internal/ct"
 )
+
+var Schemas = make(map[string]ct.Schema)
 
 var OperatorIndex = map[string]bool{
 	"=":           true,

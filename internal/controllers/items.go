@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/cobaltbase/cobaltbase/internal/cobaltbase/config"
-	"github.com/cobaltbase/cobaltbase/internal/cobaltbase/ct"
-	"github.com/cobaltbase/cobaltbase/internal/cobaltbase/utils"
+	"github.com/cobaltbase/cobaltbase/internal/config"
+	"github.com/cobaltbase/cobaltbase/internal/ct"
+	"github.com/cobaltbase/cobaltbase/internal/utils"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	gonanoid "github.com/matoous/go-nanoid/v2"
@@ -20,10 +20,7 @@ func GetAllItems() http.HandlerFunc {
 		filterObjString := r.URL.Query().Get("filterObj")
 		filterQueryString := r.URL.Query().Get("filterQuery")
 
-		var schema ct.Schema
-		config.DB.Preload("Fields").First(&schema, &ct.Schema{
-			TableName: table,
-		})
+		schema := utils.Schemas[table]
 
 		var filterObj ct.Js
 		if filterObjString != "" {
@@ -94,18 +91,7 @@ func GetAllItems() http.HandlerFunc {
 func CreateItem() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tableName := chi.URLParam(r, "table")
-		var schema ct.Schema
-
-		result := config.DB.Preload("Fields").First(&schema, &ct.Schema{
-			TableName: tableName,
-		})
-		if result.Error != nil {
-			render.Status(r, 400)
-			render.JSON(w, r, ct.Js{
-				"error": result.Error.Error(),
-			})
-			return
-		}
+		//schema := utils.Schemas[tableName]
 
 		data, ok := r.Context().Value(ct.JsonDataKey).(ct.Js)
 
@@ -140,10 +126,7 @@ func GetItem() http.HandlerFunc {
 		filterObjString := r.URL.Query().Get("filterObj")
 		filterQueryString := r.URL.Query().Get("filterQuery")
 
-		var schema ct.Schema
-		config.DB.Preload("Fields").First(&schema, &ct.Schema{
-			TableName: table,
-		})
+		schema := utils.Schemas[table]
 
 		var filterObj ct.Js
 		if filterObjString != "" {

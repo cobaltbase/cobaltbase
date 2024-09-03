@@ -7,7 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/cobaltbase/cobaltbase/internal/cobaltbase/ct"
+	"github.com/cobaltbase/cobaltbase/internal/ct"
+	"github.com/cobaltbase/cobaltbase/internal/utils"
 	"github.com/go-playground/validator/v10"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -80,6 +81,46 @@ type Config struct {
 }
 
 func Configure() {
+	SetupDatabaseConnections()
+	ApplyAllStatiSchemaMigrations()
+	FetchAllSchemas()
+	ApplyAllDynamicSchemaMigrations()
+}
+
+func FetchAllSchemas() {
+	var schemas []ct.Schema
+
+	err := DB.Model(&ct.Schema{}).Preload("Fields").Find(&schemas).Error
+	if err == nil {
+		log.Println("Fetched All Schemas")
+	}
+
+	for _, s := range schemas {
+		utils.Schemas[s.TableName] = s
+	}
+}
+
+func ApplyAllDynamicSchemaMigrations() {
+	for _, s := range utils.Schemas {
+		err := utils.CreateSchema(DB, s)
+		if err != nil {
+			log.Fatalf("Could not apply migration for '%v'", s.TableName)
+		}
+	}
+}
+
+func ApplyAllStatiSchemaMigrations() {
+	err := DB.Table("schemas").AutoMigrate(&ct.Schema{})
+	if err != nil {
+		log.Fatalf("failed to create table: %v", err)
+	}
+	err = DB.AutoMigrate(&ct.SchemaField{})
+	if err != nil {
+		log.Fatalf("failed to create table: %v", err)
+	}
+}
+
+func SetupDatabaseConnections() {
 	config, err := loadConfig()
 	if err != nil {
 		fmt.Printf("Failed to load config: %v\n", err)
@@ -103,13 +144,9 @@ func Configure() {
 	} else {
 		log.Println("Connected to database")
 	}
+}
 
-	err = DB.Table("schemas").AutoMigrate(&ct.Schema{})
-	if err != nil {
-		fmt.Printf("failed to create table: %v", err)
-	}
-	err = DB.AutoMigrate(&ct.SchemaField{})
-	if err != nil {
-		fmt.Printf("failed to create table: %v", err)
-	}
+func UpdateAndMigrateSchemas() {
+	FetchAllSchemas()
+	ApplyAllDynamicSchemaMigrations()
 }

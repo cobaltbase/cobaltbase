@@ -8,13 +8,27 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/cobaltbase/cobaltbase/internal/cobaltbase/config"
-	"github.com/cobaltbase/cobaltbase/internal/cobaltbase/ct"
-	"github.com/cobaltbase/cobaltbase/internal/cobaltbase/utils"
+	"github.com/cobaltbase/cobaltbase/internal/config"
+	"github.com/cobaltbase/cobaltbase/internal/ct"
+	"github.com/cobaltbase/cobaltbase/internal/utils"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	"github.com/lib/pq"
 )
+
+func CheckTableExists(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		tableName := chi.URLParam(r, "table")
+		fmt.Println(tableName)
+		schema := utils.Schemas[tableName]
+		if schema.TableName == "" {
+			render.Status(r, 400)
+			render.JSON(w, r, ct.Js{"message": "Invalid table name"})
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
 
 func PreProcessingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -22,18 +36,7 @@ func PreProcessingMiddleware(next http.Handler) http.Handler {
 		contentType := r.Header.Get("Content-Type")
 		tableName := chi.URLParam(r, "table")
 
-		var schema ct.Schema
-
-		result := config.DB.Preload("Fields").First(&schema, &ct.Schema{
-			TableName: tableName,
-		})
-		if result.Error != nil {
-			render.Status(r, 400)
-			render.JSON(w, r, ct.Js{
-				"error": result.Error.Error(),
-			})
-			return
-		}
+		schema := utils.Schemas[tableName]
 
 		if strings.HasPrefix(contentType, "multipart/form-data") {
 

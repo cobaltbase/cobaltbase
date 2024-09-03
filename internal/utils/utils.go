@@ -7,7 +7,7 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/cobaltbase/cobaltbase/internal/cobaltbase/ct"
+	"github.com/cobaltbase/cobaltbase/internal/ct"
 	"github.com/lib/pq"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
@@ -44,7 +44,7 @@ func CreateSchema(db *gorm.DB, schema ct.Schema) error {
 	// Create the table
 	err := db.Table(schema.TableName).AutoMigrate(newStruct)
 	if err != nil {
-		return fmt.Errorf("failed to create table: %v", err)
+		return fmt.Errorf("failed to create or update table: %v", err)
 	}
 
 	return nil
