@@ -19,7 +19,6 @@ import (
 func CheckTableExists(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		tableName := chi.URLParam(r, "table")
-		fmt.Println(tableName)
 		schema := utils.Schemas[tableName]
 		if schema.TableName == "" {
 			render.Status(r, 400)
