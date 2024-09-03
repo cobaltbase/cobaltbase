@@ -193,7 +193,8 @@ func DeleteSchemaWithData() http.HandlerFunc {
 			return
 		}
 		if soft == "no" {
-			err = config.DB.Unscoped().Table(tableName).Where("1=1").Delete(ct.Js{}).Error
+			//err = config.DB.Unscoped().Table(tableName).Where("1=1").Delete(ct.Js{}).Error
+			err = config.DB.Migrator().DropTable(tableName)
 		} else {
 			err = config.DB.Table(tableName).Where("1=1").Delete(ct.Js{}).Error
 		}
