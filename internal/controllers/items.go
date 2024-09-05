@@ -200,7 +200,7 @@ func UpdateItem() http.HandlerFunc {
 		var schema ct.Schema
 
 		result := config.DB.Preload("Fields").First(&schema, &ct.Schema{
-			TableName: tableName,
+			Table: tableName,
 		})
 		if result.Error != nil {
 			render.Status(r, 400)

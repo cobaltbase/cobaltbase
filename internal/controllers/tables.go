@@ -129,7 +129,7 @@ func DeleteSchemaWithoutData() http.HandlerFunc {
 			})
 		}
 		err = config.DB.Delete(&ct.Schema{}, &ct.Schema{
-			TableName: tableName,
+			Table: tableName,
 		}).Error
 		if err != nil {
 			render.Status(r, 400)
@@ -163,7 +163,7 @@ func DeleteSchemaWithData() http.HandlerFunc {
 			}
 
 			err = config.DB.Unscoped().Delete(&ct.Schema{}, &ct.Schema{
-				TableName: tableName,
+				Table: tableName,
 			}).Error
 
 		} else {
@@ -180,7 +180,7 @@ func DeleteSchemaWithData() http.HandlerFunc {
 			}
 
 			err = config.DB.Delete(&ct.Schema{}, &ct.Schema{
-				TableName: tableName,
+				Table: tableName,
 			}).Error
 
 		}

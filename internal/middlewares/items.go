@@ -20,7 +20,7 @@ func CheckTableExists(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		tableName := chi.URLParam(r, "table")
 		schema := utils.Schemas[tableName]
-		if schema.TableName == "" {
+		if schema.Table == "" {
 			render.Status(r, 400)
 			render.JSON(w, r, ct.Js{"message": "Invalid table name"})
 			return

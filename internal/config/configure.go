@@ -96,7 +96,7 @@ func FetchAllSchemas() {
 	}
 
 	for _, s := range schemas {
-		utils.Schemas[s.TableName] = s
+		utils.Schemas[s.Table] = s
 	}
 }
 
@@ -104,17 +104,25 @@ func ApplyAllDynamicSchemaMigrations() {
 	for _, s := range utils.Schemas {
 		err := utils.CreateSchema(DB, s)
 		if err != nil {
-			log.Fatalf("Could not apply migration for '%v'", s.TableName)
+			log.Fatalf("Could not apply migration for '%v'", s.Table)
 		}
 	}
 }
 
 func ApplyAllStatiSchemaMigrations() {
-	err := DB.Table("schemas").AutoMigrate(&ct.Schema{})
+	err := DB.AutoMigrate(&ct.Schema{})
 	if err != nil {
 		log.Fatalf("failed to create table: %v", err)
 	}
 	err = DB.AutoMigrate(&ct.SchemaField{})
+	if err != nil {
+		log.Fatalf("failed to create table: %v", err)
+	}
+	err = DB.AutoMigrate(&ct.Auth{})
+	if err != nil {
+		log.Fatalf("failed to create table: %v", err)
+	}
+	err = DB.AutoMigrate(&ct.Session{})
 	if err != nil {
 		log.Fatalf("failed to create table: %v", err)
 	}

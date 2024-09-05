@@ -42,7 +42,7 @@ func CreateSchema(db *gorm.DB, schema ct.Schema) error {
 	newStruct := CreateStructFromSchema(schema)
 
 	// Create the table
-	err := db.Table(schema.TableName).AutoMigrate(newStruct)
+	err := db.Table(schema.Table).AutoMigrate(newStruct)
 	if err != nil {
 		return fmt.Errorf("failed to create or update table: %v", err)
 	}

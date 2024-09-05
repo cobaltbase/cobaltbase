@@ -30,11 +30,19 @@ type SchemaField struct {
 
 type Schema struct {
 	BaseModel
-	TableName string        `json:"tableName" gorm:"uniqueIndex"`
-	Fields    []SchemaField `json:"fields" gorm:"foreignKey:SchemaID"`
+	Table  string        `json:"tableName" gorm:"uniqueIndex"`
+	Fields []SchemaField `json:"fields" gorm:"foreignKey:SchemaID"`
 }
 
 func (base *BaseModel) BeforeCreate(tx *gorm.DB) (err error) {
 	base.ID, err = gonanoid.New(10) // Generate a 10-character NanoID
 	return
+}
+
+func (Schema) TableName() string {
+	return "_schemas"
+}
+
+func (SchemaField) TableName() string {
+	return "_schema_fields"
 }
