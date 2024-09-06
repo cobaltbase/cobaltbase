@@ -6,5 +6,5 @@ import (
 
 func main() {
 	cb := cobaltbase.New()
-	cb.Run(":3000")
+	cb.Run("localhost:3000")
 }

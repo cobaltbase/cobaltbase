@@ -25,7 +25,7 @@ func New() *cobaltBase {
 }
 
 func (cb *cobaltBase) Run(port string) {
-	log.Printf("Server is running on %s", port)
+	log.Printf("Server is running on http://%s", port)
 	if err := http.ListenAndServe(port, cb.Router); err != nil {
 		log.Fatal(err)
 	}
