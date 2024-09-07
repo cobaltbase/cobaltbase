@@ -11,5 +11,9 @@ func AuthRouter() *chi.Mux {
 	ar.Post("/register", controllers.RegisterUser())
 	ar.Post("/login", controllers.Login())
 
+	ar.Get("/validate", controllers.ValidateToken())
+
+	ar.Get("/refresh_token", controllers.RefreshToken())
+
 	return ar
 }

@@ -11,8 +11,8 @@ type Auth struct {
 
 type Session struct {
 	BaseModel
-	DeviceName   string
-	RefreshToken string `gorm:"unique"`
+	UserAgent    string
+	RefreshToken string `gorm:"uniqueIndex"`
 	AuthID       string
 	Provider     string
 }
