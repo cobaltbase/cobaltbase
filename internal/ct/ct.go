@@ -35,7 +35,7 @@ type Schema struct {
 	Fields []SchemaField `json:"fields" gorm:"foreignKey:SchemaID"`
 }
 
-func (base *BaseModel) BeforeCreate(tx *gorm.DB) (err error) {
+func (base *BaseModel) BeforeCreate(*gorm.DB) (err error) {
 	base.ID, err = gonanoid.New(10) // Generate a 10-character NanoID
 	return
 }
