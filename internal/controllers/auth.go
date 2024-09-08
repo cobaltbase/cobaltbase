@@ -5,11 +5,9 @@ import (
 	"time"
 
 	"github.com/cobaltbase/cobaltbase/internal/config"
-	"github.com/cobaltbase/cobaltbase/internal/constants"
 	"github.com/cobaltbase/cobaltbase/internal/ct"
 	"github.com/cobaltbase/cobaltbase/internal/utils"
 	"github.com/go-chi/render"
-	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -21,16 +19,19 @@ func RegisterUser() http.HandlerFunc {
 		if err := render.DecodeJSON(r.Body, &requestBody); err != nil {
 			render.Status(r, 400)
 			render.JSON(w, r, ct.Js{"message": "invalid body"})
+			return
 		}
 
 		if err := config.Validate.Var(requestBody.Email, `email,required`); err != nil {
 			render.Status(r, 400)
 			render.JSON(w, r, ct.Js{"message": "invalid body"})
+			return
 		}
 
 		if err := config.Validate.Var(requestBody.Email, `required,min=8`); err != nil {
 			render.Status(r, 400)
 			render.JSON(w, r, ct.Js{"message": "invalid body"})
+			return
 		}
 
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(requestBody.Password), bcrypt.DefaultCost)
@@ -73,15 +74,15 @@ func Login() http.HandlerFunc {
 			return
 		}
 
-		user_map := ct.Js{"email": user.Email, "role": user.Role, "verified": user.Verified}
+		userMap := ct.Js{"email": user.Email, "role": user.Role, "verified": user.Verified, "id": user.ID}
 
 		// Generate JWT tokens
-		accessToken, err := utils.GenerateJWT(user_map, 15*time.Minute)
+		accessToken, err := utils.GenerateJWT(userMap, 15*time.Minute)
 		if err != nil {
 			http.Error(w, "Server error", http.StatusInternalServerError)
 			return
 		}
-		refreshToken, err := utils.GenerateJWT(user_map, 15*24*time.Hour)
+		refreshToken, err := utils.GenerateJWT(userMap, 15*24*time.Hour)
 		if err != nil {
 			http.Error(w, "Server error", http.StatusInternalServerError)
 			return
@@ -111,7 +112,7 @@ func Login() http.HandlerFunc {
 		http.SetCookie(w, &http.Cookie{
 			Name:     "refresh_token",
 			Value:    refreshToken,
-			Expires:  time.Now().Add(7 * 24 * time.Hour),
+			Expires:  time.Now().Add(15 * 24 * time.Hour),
 			HttpOnly: true,
 			Path:     "/",
 		})
@@ -123,26 +124,14 @@ func Login() http.HandlerFunc {
 
 func ValidateToken() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		cookie, err := r.Cookie("access_token")
-		if err != nil {
-			render.Status(r, 400)
-			render.JSON(w, r, ct.Js{"error": "unauthorized"})
+
+		user, ok := r.Context().Value(ct.AuthMiddlewareKey).(ct.Js)
+
+		if !ok {
+			render.Status(r, 500)
+			render.JSON(w, r, ct.Js{"error": "internal server error"})
 			return
 		}
-
-		tokenStr := cookie.Value
-		claims := jwt.MapClaims{}
-		token, err := jwt.ParseWithClaims(tokenStr, &claims, func(token *jwt.Token) (interface{}, error) {
-			return []byte(constants.JWT_SECRET), nil
-		})
-
-		if err != nil || !token.Valid {
-			render.Status(r, 400)
-			render.JSON(w, r, ct.Js{"error": "unauthorized"})
-			return
-		}
-
-		user := claims["user"]
 
 		render.JSON(w, r, ct.Js{
 			"message": "user is authorized",
@@ -151,52 +140,60 @@ func ValidateToken() http.HandlerFunc {
 	}
 }
 
-func RefreshToken() http.HandlerFunc {
+func GetSessions() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		cookie, err := r.Cookie("refresh_token")
-		if err != nil {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		var sessions []ct.Session
+
+		user, ok := (r.Context().Value(ct.AuthMiddlewareKey)).(ct.Js)
+
+		if !ok {
+			render.Status(r, 500)
+			render.JSON(w, r, ct.Js{"error": "internal server error"})
 			return
 		}
 
-		refreshToken := cookie.Value
-
-		var session ct.Session
-		err = config.DB.First(&session, &ct.Session{RefreshToken: refreshToken}).Error
+		err := config.DB.Select("id", "created_at", "updated_at", "user_agent", "auth_id", "provider").Find(&sessions, &ct.Session{
+			AuthID: user["id"].(string),
+		}).Error
 		if err != nil {
 			render.Status(r, 400)
-			render.JSON(w, r, ct.Js{"error": "session not found"})
+			render.JSON(w, r, ct.Js{"error": err.Error()})
 			return
 		}
 
-		claims := jwt.MapClaims{}
-		token, err := jwt.ParseWithClaims(refreshToken, &claims, func(token *jwt.Token) (interface{}, error) {
-			return []byte(constants.JWT_SECRET), nil
-		})
+		render.JSON(w, r, ct.Js{"sessions": sessions})
 
-		if err != nil || !token.Valid {
-			render.Status(r, 401)
-			render.JSON(w, r, ct.Js{"error": "unauthorized"})
-			return
-		}
+	}
+}
 
-		user := claims["user"].(ct.Js)
-		newAccessToken, err := utils.GenerateJWT(user, 15*time.Minute)
-		if err != nil {
+func RevokeSession() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user, ok := (r.Context().Value(ct.AuthMiddlewareKey)).(ct.Js)
+
+		if !ok {
 			render.Status(r, 500)
-			render.JSON(w, r, ct.Js{"error": "server error"})
+			render.JSON(w, r, ct.Js{"error": "internal server error"})
 			return
 		}
 
-		// Set new access token in HttpOnly cookie
-		http.SetCookie(w, &http.Cookie{
-			Name:     "access_token",
-			Value:    newAccessToken,
-			Expires:  time.Now().Add(15 * time.Minute),
-			HttpOnly: true,
-			Path:     "/",
-		})
+		var input struct {
+			ID string `json:"id"`
+		}
+		if err := render.DecodeJSON(r.Body, &input); err != nil {
+			render.Status(r, 400)
+			render.JSON(w, r, ct.Js{"error": err.Error()})
+			return
+		}
+		err := config.DB.Where("id = ?", input.ID).Delete(&ct.Session{}, &ct.Session{
+			AuthID: user["id"].(string),
+		}).Error
 
-		w.WriteHeader(http.StatusOK)
+		if err != nil {
+			render.Status(r, 400)
+			render.JSON(w, r, ct.Js{"error": err.Error()})
+			return
+		}
+
+		render.JSON(w, r, ct.Js{"message": "session revoked successfully"})
 	}
 }

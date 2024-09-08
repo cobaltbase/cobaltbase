@@ -9,6 +9,7 @@ import (
 type ContextKey string
 
 const JsonDataKey = ContextKey("jsondata")
+const AuthMiddlewareKey = ContextKey("auth_middleware_key")
 
 type Js = map[string]interface{}
 

@@ -107,7 +107,14 @@ func PreProcessingMiddleware(next http.Handler) http.Handler {
 		} else if strings.HasPrefix(contentType, "application/json") {
 
 			var data ct.Js
-			render.DecodeJSON(r.Body, &data)
+			err := render.DecodeJSON(r.Body, &data)
+			if err != nil {
+				render.Status(r, 400)
+				render.JSON(w, r, ct.Js{
+					"message": "validation error",
+					"error":   err.Error(),
+				})
+			}
 			data, errors := ValidataBody(data, schema)
 			if len(errors) > 0 {
 				render.Status(r, 400)
