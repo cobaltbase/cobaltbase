@@ -1,6 +1,7 @@
 package cobaltbase
 
 import (
+	"github.com/go-chi/cors"
 	"log"
 	"net/http"
 
@@ -17,6 +18,12 @@ type cobaltBase struct {
 func New() *cobaltBase {
 	router := chi.NewRouter()
 	router.Use(middleware.Logger)
+	router.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:5173"},
+		AllowCredentials: true,
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+	}))
 	router.Mount("/api", routes.ApiRouter())
 	config.Configure()
 	return &cobaltBase{

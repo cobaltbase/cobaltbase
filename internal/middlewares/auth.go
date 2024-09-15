@@ -55,6 +55,8 @@ func AuthenticateUser(next http.Handler) http.Handler {
 				Value:    newAccessToken,
 				Expires:  time.Now().Add(15 * time.Minute),
 				HttpOnly: true,
+				Secure:   true,
+				SameSite: http.SameSiteNoneMode,
 				Path:     "/",
 			})
 			tokenStr = newAccessToken

@@ -1,5 +1,9 @@
 package ct
 
+import (
+	"time"
+)
+
 type Auth struct {
 	BaseModel
 	Email    string `gorm:"uniqueIndex"`
@@ -25,7 +29,25 @@ func (Session) TableName() string {
 	return "_sessions"
 }
 
+func (OTP) TableName() string {
+	return "_otps"
+}
+
 type AuthRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
+}
+
+type SMTPConfig struct {
+	Host     string `json:"host"`
+	Port     string `json:"port"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+	From     string `json:"from"`
+}
+
+type OTP struct {
+	UpdatedAt time.Time
+	Email     string `json:"email" gorm:"primarykey"`
+	OTP       string `json:"otp"`
 }

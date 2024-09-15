@@ -29,3 +29,5 @@ tmp
 uploads
 .history
 .idea
+smptpconfig.json
+dbconfig.json

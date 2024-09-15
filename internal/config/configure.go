@@ -14,11 +14,32 @@ import (
 	"gorm.io/gorm"
 )
 
+var SMTPConfig ct.SMTPConfig
+
 var DB *gorm.DB
 
 var Validate = validator.New()
 
 const configFileName = "dbconfig.json"
+
+func LoadSMTPConfig() {
+	dir, err := os.Getwd()
+	if err != nil {
+		fmt.Printf("failed to get current directory: %v", err)
+	}
+
+	configPath := filepath.Join(dir, "smtpconfig.json")
+
+	file, err := os.ReadFile(configPath)
+	if err != nil {
+		fmt.Printf("failed to read config file: %v", err)
+	}
+
+	err = json.Unmarshal(file, &SMTPConfig)
+	if err != nil {
+		fmt.Printf("failed to parse config file: %v", err)
+	}
+}
 
 func loadConfig() (Config, error) {
 	var config Config
@@ -85,6 +106,7 @@ func Configure() {
 	ApplyAllStatiSchemaMigrations()
 	FetchAllSchemas()
 	ApplyAllDynamicSchemaMigrations()
+	LoadSMTPConfig()
 }
 
 func FetchAllSchemas() {
@@ -123,6 +145,10 @@ func ApplyAllStatiSchemaMigrations() {
 		log.Fatalf("failed to create table: %v", err)
 	}
 	err = DB.AutoMigrate(&ct.Session{})
+	if err != nil {
+		log.Fatalf("failed to create table: %v", err)
+	}
+	err = DB.AutoMigrate(&ct.OTP{})
 	if err != nil {
 		log.Fatalf("failed to create table: %v", err)
 	}
