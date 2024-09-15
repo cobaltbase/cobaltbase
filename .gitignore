@@ -31,3 +31,4 @@ uploads
 .idea
 smptpconfig.json
 dbconfig.json
+/smtpconfig.json
