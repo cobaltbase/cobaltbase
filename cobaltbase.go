@@ -2,6 +2,8 @@ package cobaltbase
 
 import (
 	"github.com/go-chi/cors"
+	"github.com/markbates/goth"
+	"github.com/markbates/goth/providers/google"
 	"log"
 	"net/http"
 
@@ -16,10 +18,15 @@ type cobaltBase struct {
 }
 
 func New() *cobaltBase {
+
+	goth.UseProviders(
+		google.New("", "", "http://localhost:3000/api/auth/oauth/callback?provider=google"),
+	)
+
 	router := chi.NewRouter()
 	router.Use(middleware.Logger)
 	router.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:5173"},
+		AllowedOrigins:   []string{"http://localhost:5173", "https://accounts.google.com"},
 		AllowCredentials: true,
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},

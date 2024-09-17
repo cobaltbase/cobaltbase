@@ -51,3 +51,10 @@ type OTP struct {
 	Email     string `json:"email" gorm:"primarykey"`
 	OTP       string `json:"otp"`
 }
+
+type OauthConfig struct {
+	BaseModel
+	ClientID     string `json:"client_id"`
+	ClientSecret string `json:"client_secret"`
+	Provider     string `json:"provider" gorm:"uniqueIndex"`
+}

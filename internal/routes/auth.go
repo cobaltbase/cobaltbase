@@ -18,6 +18,9 @@ func AuthRouter() *chi.Mux {
 	ar.Post("/send-verification-mail", controllers.SendMailCode())
 	ar.With(middlewares.AuthenticateUser).Post("/verify-email", controllers.VerifyEmail())
 	ar.Post("/reset-password", controllers.ResetPassword())
+	ar.Get("/oauth/callback", controllers.ProviderAuthCallback())
+	ar.Get("/oauth/login", controllers.ProviderAuthLogin())
+	ar.Get("/test-cookie", controllers.CookieTest())
 
 	return ar
 }

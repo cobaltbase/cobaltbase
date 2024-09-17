@@ -2,6 +2,8 @@ package controllers
 
 import (
 	"fmt"
+	"github.com/markbates/goth"
+	"github.com/markbates/goth/gothic"
 	"net/http"
 	"time"
 
@@ -465,5 +467,167 @@ func ResetPassword() http.HandlerFunc {
 		})
 
 		render.JSON(w, r, ct.Js{"message": "password changed, all sessions revoked and current session logged in"})
+	}
+}
+
+func ProviderAuthCallback() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var user goth.User
+		var err error
+		user, err = gothic.CompleteUserAuth(w, r)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+		var dbUser ct.Auth
+		config.DB.Where("email = ?", user.Email).First(&dbUser)
+
+		userMap := ct.Js{"email": dbUser.Email, "role": dbUser.Role, "verified": dbUser.Verified, "id": dbUser.ID}
+
+		// Generate JWT tokens
+		accessToken, err := utils.GenerateJWT(userMap, 15*time.Minute)
+		if err != nil {
+			http.Error(w, "Server error", http.StatusInternalServerError)
+			return
+		}
+		refreshToken, err := utils.GenerateJWT(userMap, 15*24*time.Hour)
+		if err != nil {
+			http.Error(w, "Server error", http.StatusInternalServerError)
+			return
+		}
+
+		var session ct.Session
+
+		session.AuthID = dbUser.ID
+		session.Provider = "local"
+		session.UserAgent = r.Header.Get("User-Agent")
+		session.RefreshToken = refreshToken
+
+		err = config.DB.Create(&session).Error
+		if err != nil {
+			render.Status(r, 500)
+			render.JSON(w, r, ct.Js{"error": "could not create session"})
+			return
+		}
+
+		http.SetCookie(w, &http.Cookie{
+			Name:     "access_token",
+			Value:    accessToken,
+			Expires:  time.Now().Add(15 * time.Minute),
+			HttpOnly: true,
+			Path:     "/",
+			Secure:   true,
+			SameSite: http.SameSiteNoneMode,
+		})
+		http.SetCookie(w, &http.Cookie{
+			Name:     "refresh_token",
+			Value:    refreshToken,
+			Expires:  time.Now().Add(15 * 24 * time.Hour),
+			HttpOnly: true,
+			Path:     "/",
+			Secure:   true,
+			SameSite: http.SameSiteNoneMode,
+		})
+		w.Header().Set("Content-Type", "text/html")
+		w.Write([]byte(`
+            <html>
+                <body>
+                    <script>
+                        window.close();
+                    </script>
+                    <p>Closing tab...</p>
+                </body>
+            </html>
+        `))
+	}
+}
+
+func ProviderAuthLogin() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		if user, err := gothic.CompleteUserAuth(w, r); err == nil {
+			var dbUser ct.Auth
+			config.DB.Where("email = ?", user.Email).First(&dbUser)
+
+			userMap := ct.Js{"email": dbUser.Email, "role": dbUser.Role, "verified": dbUser.Verified, "id": dbUser.ID}
+
+			// Generate JWT tokens
+			accessToken, err := utils.GenerateJWT(userMap, 15*time.Minute)
+			if err != nil {
+				http.Error(w, "Server error", http.StatusInternalServerError)
+				return
+			}
+			refreshToken, err := utils.GenerateJWT(userMap, 15*24*time.Hour)
+			if err != nil {
+				http.Error(w, "Server error", http.StatusInternalServerError)
+				return
+			}
+
+			var session ct.Session
+
+			session.AuthID = dbUser.ID
+			session.Provider = "local"
+			session.UserAgent = r.Header.Get("User-Agent")
+			session.RefreshToken = refreshToken
+
+			err = config.DB.Create(&session).Error
+			if err != nil {
+				render.Status(r, 500)
+				render.JSON(w, r, ct.Js{"error": "could not create session"})
+				return
+			}
+
+			http.SetCookie(w, &http.Cookie{
+				Name:     "access_token",
+				Value:    accessToken,
+				Expires:  time.Now().Add(15 * time.Minute),
+				HttpOnly: true,
+				Path:     "/",
+				Secure:   true,
+				SameSite: http.SameSiteNoneMode,
+			})
+			http.SetCookie(w, &http.Cookie{
+				Name:     "refresh_token",
+				Value:    refreshToken,
+				Expires:  time.Now().Add(15 * 24 * time.Hour),
+				HttpOnly: true,
+				Path:     "/",
+				Secure:   true,
+				SameSite: http.SameSiteNoneMode,
+			})
+			w.Header().Set("Content-Type", "text/html")
+			w.Write([]byte(`
+            <html>
+                <body>
+                    <script>
+                        window.close();
+                    </script>
+                    <p>Closing tab...</p>
+                </body>
+            </html>
+        `))
+		}
+
+		url, err := gothic.GetAuthURL(w, r)
+		if err != nil {
+			render.Status(r, 401)
+			render.JSON(w, r, ct.Js{"error": err.Error()})
+			return
+		}
+		render.JSON(w, r, url)
+	}
+}
+
+func CookieTest() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		http.SetCookie(w, &http.Cookie{
+			Name:     "test",
+			Value:    "ajkshgfidsagkjlfgskg",
+			Expires:  time.Now().Add(24 * time.Hour),
+			HttpOnly: true,
+			Path:     "/",
+			Secure:   true,
+			SameSite: http.SameSiteNoneMode,
+		})
+		render.JSON(w, r, ct.Js{"message": "test logged in"})
 	}
 }
