@@ -33,17 +33,26 @@ func (OTP) TableName() string {
 	return "_otps"
 }
 
+func (OauthConfig) TableName() string {
+	return "_oauth_config"
+}
+func (SMTPConfig) TableName() string {
+	return "_smtp_config"
+}
+
 type AuthRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
 type SMTPConfig struct {
+	BaseModel
 	Host     string `json:"host"`
 	Port     string `json:"port"`
 	Username string `json:"username"`
 	Password string `json:"password"`
 	From     string `json:"from"`
+	FromName string `json:"from_name"`
 }
 
 type OTP struct {

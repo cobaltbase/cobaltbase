@@ -1,17 +1,16 @@
 package config
 
 import (
-	"encoding/json"
+	"errors"
 	"fmt"
-	"log"
-	"os"
-	"path/filepath"
-
 	"github.com/cobaltbase/cobaltbase/internal/ct"
 	"github.com/cobaltbase/cobaltbase/internal/utils"
 	"github.com/go-playground/validator/v10"
+	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"log"
+	"os"
 )
 
 var SMTPConfig ct.SMTPConfig
@@ -20,77 +19,42 @@ var DB *gorm.DB
 
 var Validate = validator.New()
 
-const configFileName = "dbconfig.json"
-
-func LoadSMTPConfig() {
-	dir, err := os.Getwd()
-	if err != nil {
-		fmt.Printf("failed to get current directory: %v", err)
-	}
-
-	configPath := filepath.Join(dir, "smtpconfig.json")
-
-	file, err := os.ReadFile(configPath)
-	if err != nil {
-		fmt.Printf("failed to read config file: %v", err)
-	}
-
-	err = json.Unmarshal(file, &SMTPConfig)
-	if err != nil {
-		fmt.Printf("failed to parse config file: %v", err)
-	}
-}
-
 func loadConfig() (Config, error) {
 	var config Config
 
-	// Get the current working directory
-	dir, err := os.Getwd()
+	// Load environment variables from .env file, if it exists
+	err := godotenv.Load()
 	if err != nil {
-		return config, fmt.Errorf("failed to get current directory: %v", err)
+		log.Println("Warning: .env file not found, falling back to environment variables")
 	}
 
-	// Construct the full path to the config file
-	configPath := filepath.Join(dir, configFileName)
-
-	// Read the config file
-	file, err := os.ReadFile(configPath)
+	// Read from environment variables and return an error if not found
+	config.Host, err = getEnv("DB_HOST")
 	if err != nil {
-		return config, fmt.Errorf("failed to read config file: %v", err)
+		return config, err
 	}
-
-	// Unmarshal the JSON data into our Config struct
-	err = json.Unmarshal(file, &config)
+	config.Port, err = getEnv("DB_PORT")
 	if err != nil {
-		return config, fmt.Errorf("failed to parse config file: %v", err)
+		return config, err
+	}
+	config.User, err = getEnv("DB_USER")
+	if err != nil {
+		return config, err
+	}
+	config.Password, err = getEnv("DB_PASSWORD")
+	if err != nil {
+		return config, err
+	}
+	config.DBName, err = getEnv("DB_NAME")
+	if err != nil {
+		return config, err
+	}
+	config.SSLMode, err = getEnv("DB_SSLMODE")
+	if err != nil {
+		return config, err
 	}
 
 	return config, nil
-}
-
-func saveConfig(config Config) error {
-	// Get the current working directory
-	dir, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("failed to get current directory: %v", err)
-	}
-
-	// Construct the full path to the config file
-	configPath := filepath.Join(dir, configFileName)
-
-	// Marshal the config struct to JSON
-	data, err := json.MarshalIndent(config, "", "    ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal config: %v", err)
-	}
-
-	// Write the JSON data to the file
-	err = os.WriteFile(configPath, data, 0644)
-	if err != nil {
-		return fmt.Errorf("failed to write config file: %v", err)
-	}
-
-	return nil
 }
 
 type Config struct {
@@ -99,14 +63,16 @@ type Config struct {
 	User     string `json:"user"`
 	Password string `json:"password"`
 	DBName   string `json:"dbname"`
+	SSLMode  string `json:"sslmode"`
 }
 
 func Configure() {
 	SetupDatabaseConnections()
-	ApplyAllStatiSchemaMigrations()
+	ApplyAllStaticSchemaMigrations()
 	FetchAllSchemas()
+	FetchAllOauthConfigs()
 	ApplyAllDynamicSchemaMigrations()
-	LoadSMTPConfig()
+	SetupSMTPConfig()
 }
 
 func FetchAllSchemas() {
@@ -131,7 +97,7 @@ func ApplyAllDynamicSchemaMigrations() {
 	}
 }
 
-func ApplyAllStatiSchemaMigrations() {
+func ApplyAllStaticSchemaMigrations() {
 	err := DB.AutoMigrate(&ct.Schema{})
 	if err != nil {
 		log.Fatalf("failed to create table: %v", err)
@@ -152,25 +118,23 @@ func ApplyAllStatiSchemaMigrations() {
 	if err != nil {
 		log.Fatalf("failed to create table: %v", err)
 	}
+	err = DB.AutoMigrate(&ct.OauthConfig{})
+	if err != nil {
+		log.Fatalf("failed to create table: %v", err)
+	}
+	err = DB.AutoMigrate(&ct.SMTPConfig{})
+	if err != nil {
+		log.Fatalf("failed to create table: %v", err)
+	}
 }
 
 func SetupDatabaseConnections() {
 	config, err := loadConfig()
 	if err != nil {
-		fmt.Printf("Failed to load config: %v\n", err)
-		config = Config{
-			Host:     "localhost",
-			Port:     "5432",
-			User:     "cb",
-			Password: "cobaltbase",
-			DBName:   "cobaltbasedb",
-		}
-		if err := saveConfig(config); err != nil {
-			fmt.Printf("Failed to save default config: %v\n", err)
-		}
+		log.Fatalf("Failed to load config: %v\n", err)
 	}
 
-	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", config.Host, config.Port, config.User, config.Password, config.DBName)
+	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s", config.Host, config.Port, config.User, config.Password, config.DBName, config.SSLMode)
 
 	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
@@ -183,4 +147,20 @@ func SetupDatabaseConnections() {
 func UpdateAndMigrateSchemas() {
 	FetchAllSchemas()
 	ApplyAllDynamicSchemaMigrations()
+}
+
+func SetupSMTPConfig() {
+	err := DB.First(&SMTPConfig).Error
+	if err != nil {
+		log.Printf("Failed to get SMTP config from database: %v\n", err)
+	}
+	log.Println("SMTP config loaded")
+}
+
+func getEnv(key string) (string, error) {
+	value := os.Getenv(key)
+	if value == "" {
+		return "", errors.New("required environment variable not set: " + key)
+	}
+	return value, nil
 }

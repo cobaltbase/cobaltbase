@@ -2,8 +2,6 @@ package cobaltbase
 
 import (
 	"github.com/go-chi/cors"
-	"github.com/markbates/goth"
-	"github.com/markbates/goth/providers/google"
 	"log"
 	"net/http"
 
@@ -13,16 +11,13 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-type cobaltBase struct {
+type CobaltBase struct {
 	Router *chi.Mux
 }
 
-func New() *cobaltBase {
+var server http.Server
 
-	goth.UseProviders(
-		google.New("", "", "http://localhost:3000/api/auth/oauth/callback?provider=google"),
-	)
-
+func New() *CobaltBase {
 	router := chi.NewRouter()
 	router.Use(middleware.Logger)
 	router.Use(cors.Handler(cors.Options{
@@ -33,14 +28,16 @@ func New() *cobaltBase {
 	}))
 	router.Mount("/api", routes.ApiRouter())
 	config.Configure()
-	return &cobaltBase{
+	return &CobaltBase{
 		Router: router,
 	}
 }
 
-func (cb *cobaltBase) Run(port string) {
+func (cb *CobaltBase) Run(port string) {
 	log.Printf("Server is running on http://%s", port)
-	if err := http.ListenAndServe(port, cb.Router); err != nil {
+	server.Handler = cb.Router
+	server.Addr = port
+	if err := server.ListenAndServe(); err != nil {
 		log.Fatal(err)
 	}
 }

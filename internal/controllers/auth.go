@@ -270,7 +270,9 @@ func SendMailCode() http.HandlerFunc {
 		go func() {
 			err := utils.SendSMTPMail(user.Email, config.SMTPConfig, config.DB)
 			if err != nil {
-				fmt.Println("Mail not sent")
+				fmt.Println(err.Error())
+			} else {
+				fmt.Println("Mail sent")
 			}
 		}()
 		if err != nil {
@@ -476,68 +478,16 @@ func ProviderAuthCallback() http.HandlerFunc {
 		var err error
 		user, err = gothic.CompleteUserAuth(w, r)
 		if err != nil {
-			fmt.Println(err.Error())
-		}
-		var dbUser ct.Auth
-		config.DB.Where("email = ?", user.Email).First(&dbUser)
-
-		userMap := ct.Js{"email": dbUser.Email, "role": dbUser.Role, "verified": dbUser.Verified, "id": dbUser.ID}
-
-		// Generate JWT tokens
-		accessToken, err := utils.GenerateJWT(userMap, 15*time.Minute)
-		if err != nil {
-			http.Error(w, "Server error", http.StatusInternalServerError)
+			render.Status(r, 400)
+			render.JSON(w, r, ct.Js{"error": err.Error()})
 			return
 		}
-		refreshToken, err := utils.GenerateJWT(userMap, 15*24*time.Hour)
+		err = utils.CompleteProviderAuth(user, w, r, config.DB)
 		if err != nil {
-			http.Error(w, "Server error", http.StatusInternalServerError)
+			render.Status(r, 400)
+			render.JSON(w, r, ct.Js{"error": err.Error()})
 			return
 		}
-
-		var session ct.Session
-
-		session.AuthID = dbUser.ID
-		session.Provider = "local"
-		session.UserAgent = r.Header.Get("User-Agent")
-		session.RefreshToken = refreshToken
-
-		err = config.DB.Create(&session).Error
-		if err != nil {
-			render.Status(r, 500)
-			render.JSON(w, r, ct.Js{"error": "could not create session"})
-			return
-		}
-
-		http.SetCookie(w, &http.Cookie{
-			Name:     "access_token",
-			Value:    accessToken,
-			Expires:  time.Now().Add(15 * time.Minute),
-			HttpOnly: true,
-			Path:     "/",
-			Secure:   true,
-			SameSite: http.SameSiteNoneMode,
-		})
-		http.SetCookie(w, &http.Cookie{
-			Name:     "refresh_token",
-			Value:    refreshToken,
-			Expires:  time.Now().Add(15 * 24 * time.Hour),
-			HttpOnly: true,
-			Path:     "/",
-			Secure:   true,
-			SameSite: http.SameSiteNoneMode,
-		})
-		w.Header().Set("Content-Type", "text/html")
-		w.Write([]byte(`
-            <html>
-                <body>
-                    <script>
-                        window.close();
-                    </script>
-                    <p>Closing tab...</p>
-                </body>
-            </html>
-        `))
 	}
 }
 
@@ -545,68 +495,13 @@ func ProviderAuthLogin() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		if user, err := gothic.CompleteUserAuth(w, r); err == nil {
-			var dbUser ct.Auth
-			config.DB.Where("email = ?", user.Email).First(&dbUser)
-
-			userMap := ct.Js{"email": dbUser.Email, "role": dbUser.Role, "verified": dbUser.Verified, "id": dbUser.ID}
-
-			// Generate JWT tokens
-			accessToken, err := utils.GenerateJWT(userMap, 15*time.Minute)
+			err := utils.CompleteProviderAuth(user, w, r, config.DB)
 			if err != nil {
-				http.Error(w, "Server error", http.StatusInternalServerError)
+				render.Status(r, 400)
+				render.JSON(w, r, ct.Js{"error": err.Error()})
 				return
 			}
-			refreshToken, err := utils.GenerateJWT(userMap, 15*24*time.Hour)
-			if err != nil {
-				http.Error(w, "Server error", http.StatusInternalServerError)
-				return
-			}
-
-			var session ct.Session
-
-			session.AuthID = dbUser.ID
-			session.Provider = "local"
-			session.UserAgent = r.Header.Get("User-Agent")
-			session.RefreshToken = refreshToken
-
-			err = config.DB.Create(&session).Error
-			if err != nil {
-				render.Status(r, 500)
-				render.JSON(w, r, ct.Js{"error": "could not create session"})
-				return
-			}
-
-			http.SetCookie(w, &http.Cookie{
-				Name:     "access_token",
-				Value:    accessToken,
-				Expires:  time.Now().Add(15 * time.Minute),
-				HttpOnly: true,
-				Path:     "/",
-				Secure:   true,
-				SameSite: http.SameSiteNoneMode,
-			})
-			http.SetCookie(w, &http.Cookie{
-				Name:     "refresh_token",
-				Value:    refreshToken,
-				Expires:  time.Now().Add(15 * 24 * time.Hour),
-				HttpOnly: true,
-				Path:     "/",
-				Secure:   true,
-				SameSite: http.SameSiteNoneMode,
-			})
-			w.Header().Set("Content-Type", "text/html")
-			w.Write([]byte(`
-            <html>
-                <body>
-                    <script>
-                        window.close();
-                    </script>
-                    <p>Closing tab...</p>
-                </body>
-            </html>
-        `))
 		}
-
 		url, err := gothic.GetAuthURL(w, r)
 		if err != nil {
 			render.Status(r, 401)
